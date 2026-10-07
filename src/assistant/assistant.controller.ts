@@ -17,9 +17,21 @@ export class AssistantController {
   suggest(@Body(new ZodPipe(SuggestSchema)) body: { text: string }) { return this.assistant.suggest(body.text); }
 
   @Post('subscribe') @Throttle({ default: { limit: 10, ttl: 900_000 } })
-  @ApiOperation({ summary: 'Suscripción al boletín (idempotente)' })
-  async subscribe(@Body(new ZodPipe(SubscribeSchema)) body: { email: string }) {
-    await this.db.insert(subscribers).values({ email: body.email.toLowerCase() }).onConflictDoNothing();
+  @ApiOperation({ summary: 'Suscripción al boletín con consentimiento de datos (idempotente)' })
+  async subscribe(@Body(new ZodPipe(SubscribeSchema)) body: { email: string; consent?: boolean }) {
+    await this.db.insert(subscribers).values({
+      email: body.email.toLowerCase(),
+      consent: body.consent !== false,
+      consentAt: new Date(),
+      status: 'active',
+    }).onConflictDoUpdate({
+      target: subscribers.email,
+      set: {
+        consent: body.consent !== false,
+        consentAt: new Date(),
+        status: 'active',
+      },
+    });
     return { ok: true };
   }
 }

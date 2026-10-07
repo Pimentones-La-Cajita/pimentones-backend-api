@@ -112,7 +112,13 @@ export class BackofficeService {
   }
   async subscribersCsv() {
     const rows = await this.db.select().from(subscribers).orderBy(desc(subscribers.createdAt));
-    return '\uFEFFcorreo;fecha\n' + rows.map((r) => `${r.email};${r.createdAt.toISOString()}`).join('\n');
+    return '\uFEFFcorreo;autorizado_habeas_data;fecha_autorizacion;estado_envio;fecha_registro\n' + rows.map((r) => [
+      r.email,
+      r.consent ? 'SI' : 'NO',
+      r.consentAt ? r.consentAt.toISOString() : r.createdAt.toISOString(),
+      r.status || 'active',
+      r.createdAt.toISOString(),
+    ].join(';')).join('\n');
   }
   async customersCsv() {
     const rows = await this.customers();
